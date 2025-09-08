@@ -1,30 +1,18 @@
-// This is a serverless function that acts as a secure proxy to the Google Gemini API.
-// It runs as a standalone Express server inside a container on Google Cloud Run.
-// The API_KEY is securely accessed from environment variables on the server.
+// This is a Vercel Serverless Function that acts as a secure proxy to the Google Gemini API.
+// It is deployed automatically when placed in the /api directory.
+// The API_KEY is securely accessed from Vercel's environment variables.
 
-import express from 'express';
-// FIX: Changed import from CommonJS to ES module syntax.
-import cors from 'cors';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
 
 // --- Initialization & Config ---
-
-// This check ensures the server environment has the API key.
 if (!process.env.API_KEY) {
-  // We throw an error at startup if the key is missing.
-  // Cloud Run will show this in the logs if the secret isn't mounted.
-  throw new Error("API_KEY environment variable not set. Please mount the secret.");
+  throw new Error("API_KEY environment variable not set. Please add it to your Vercel project settings.");
 }
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const app = express();
-const port = process.env.PORT || 8080;
 
-// --- Middleware ---
-app.use(express.json({ limit: '10mb' })); // Allow large image payloads
-app.use(cors()); // Enable Cross-Origin Resource Sharing for your frontend
 
 // --- Helper Functions ---
-
 const handleApiError = (error: unknown): Promise<never> => {
     console.error("Error calling Gemini API:", error);
     let detailedError = "An unknown error occurred during image generation.";
@@ -49,7 +37,6 @@ const extractImageFromResponse = (response: GenerateContentResponse): string => 
 }
 
 // --- API Logic for each mode ---
-
 interface Base64Image {
   mimeType: string;
   data: string;
@@ -162,8 +149,23 @@ Your task is to place TWO separate tattoo designs onto the subject in the main i
   }
 };
 
-// --- Main API Endpoint ---
-app.post('/api/generate', async (req, res) => {
+
+// --- Vercel Serverless Function Handler ---
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Allow requests from all origins. You might want to restrict this to your domain in production.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight requests for CORS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
   try {
     const { type, payload } = req.body;
     let resultImage: string;
@@ -182,16 +184,11 @@ app.post('/api/generate', async (req, res) => {
         return res.status(400).json({ error: 'Invalid generation type specified.' });
     }
 
-    res.status(200).json({ image: resultImage });
+    return res.status(200).json({ image: resultImage });
 
   } catch (error) {
     console.error(`Error in API handler:`, error);
     const errorMessage = error instanceof Error ? error.message : "An unexpected server error occurred.";
-    res.status(500).json({ error: errorMessage });
+    return res.status(500).json({ error: errorMessage });
   }
-});
-
-// --- Start the server ---
-app.listen(port, () => {
-  console.log(`InkSynth backend listening on port ${port}`);
-});
+}

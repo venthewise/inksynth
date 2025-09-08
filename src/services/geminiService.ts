@@ -1,7 +1,4 @@
-// This service now acts as a client to our own secure backend API on Google Cloud Run.
-
-// **IMPORTANT**: Replace this placeholder with your actual Cloud Run service URL after deployment.
-const API_BASE_URL = 'https://inksynth-backend-xxxxxxxx-uc.a.run.app'; 
+// This service now acts as a client to our own secure backend, hosted on Vercel.
 
 const fileToBase64 = (file: File): Promise<{mimeType: string, data: string}> => {
   return new Promise((resolve, reject) => {
@@ -23,12 +20,9 @@ const fileToBase64 = (file: File): Promise<{mimeType: string, data: string}> => 
 
 // Generic function to handle API requests to our backend
 async function postToApi(payload: object): Promise<string> {
-  if (API_BASE_URL.includes('xxxxxxxx')) {
-    throw new Error("API service URL is not configured. Please update the placeholder in services/geminiService.ts");
-  }
-
   try {
-    const response = await fetch(`${API_BASE_URL}/api/generate`, {
+    // We now use a relative path, which will automatically point to our Vercel Serverless Function.
+    const response = await fetch(`/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

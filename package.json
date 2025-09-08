@@ -1,5 +1,5 @@
 {
-  "name": "inksynth-frontend",
+  "name": "inksynth-app",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -10,15 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.17.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-image-crop": "^11.0.5"
   },
   "devDependencies": {
+    "@types/node": "^20.12.12",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
+    "@vercel/node": "^3.1.5",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.19",
     "eslint": "^8.57.0",

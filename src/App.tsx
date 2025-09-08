@@ -45,6 +45,7 @@ function App() {
   const [contrastLevel, setContrastLevel] = useState<number>(100);
   const [isOtherTargetArea, setIsOtherTargetArea] = useState<boolean>(false);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
+  const [regenerateCountdown, setRegenerateCountdown] = useState<number>(0);
 
   // Designer State
   const [designerImages, setDesignerImages] = useState<(ImageFile | null)[]>([null, null, null]);
@@ -69,17 +70,40 @@ function App() {
   const [hasSeenMultiModal, setHasSeenMultiModal] = useState(false);
   const [isOtherTargetArea1, setIsOtherTargetArea1] = useState<boolean>(false);
   const [isOtherTargetArea2, setIsOtherTargetArea2] = useState<boolean>(false);
+  const [multiRegenerateCountdown, setMultiRegenerateCountdown] = useState<number>(0);
 
   useEffect(() => {
     // Check for duplicate target areas in multi-tattoo mode
     if (mode === 'multi-tattoo' && multiTargetArea1 && multiTargetArea2 && multiTargetArea1 === multiTargetArea2) {
       setMultiTattooError("Target areas cannot be the same. Please choose a different location for one tattoo.");
-    } 
+    }
     // Clear the specific error if the condition is resolved
     else if (multiTattooError === "Target areas cannot be the same. Please choose a different location for one tattoo.") {
       setMultiTattooError(null);
     }
   }, [mode, multiTargetArea1, multiTargetArea2, multiTattooError]);
+
+  // Countdown timer for single simulator regenerate button
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (regenerateCountdown > 0) {
+      interval = setInterval(() => {
+        setRegenerateCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [regenerateCountdown]);
+
+  // Countdown timer for multi-tattoo simulator regenerate button
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (multiRegenerateCountdown > 0) {
+      interval = setInterval(() => {
+        setMultiRegenerateCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [multiRegenerateCountdown]);
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
@@ -210,23 +234,27 @@ function App() {
   const handleConfirmSubmit = async () => {
     setIsConfirmModalOpen(false);
     setContrastLevel(100);
-    // The output should be flipped if the input was a 'Right' side, 
+    // The output should be flipped if the input was a 'Right' side,
     // to match the original photo's orientation.
     setIsFlipped(targetArea?.includes('Right') ?? false);
     setIsLoading(true);
     setGeneratedImage(null);
     await runSimulation();
     setIsLoading(false);
+    // Start 8-second countdown for regenerate button
+    setRegenerateCountdown(8);
   };
 
   const handleRegenerate = async () => {
     setContrastLevel(100);
-    // The output should be flipped if the input was a 'Right' side, 
+    // The output should be flipped if the input was a 'Right' side,
     // to match the original photo's orientation.
     setIsFlipped(targetArea?.includes('Right') ?? false);
     setIsRegenerating(true);
     await runSimulation();
     setIsRegenerating(false);
+    // Start 8-second countdown for regenerate button
+    setRegenerateCountdown(8);
   };
 
   const handleReset = () => {
@@ -346,6 +374,8 @@ function App() {
       setGeneratedMultiImage(null);
       await runMultiSimulation();
       setIsGeneratingMulti(false);
+      // Start 8-second countdown for regenerate button
+      setMultiRegenerateCountdown(8);
   };
   
   const handleRegenerateMulti = async () => {
@@ -354,6 +384,8 @@ function App() {
       setIsRegeneratingMulti(true);
       await runMultiSimulation();
       setIsRegeneratingMulti(false);
+      // Start 8-second countdown for regenerate button
+      setMultiRegenerateCountdown(8);
   };
   
   const handleResetMulti = () => {
@@ -396,7 +428,7 @@ function App() {
           </div>
 
           <div className="w-full max-w-2xl mt-6 text-center text-zinc-400 bg-zinc-900/40 border border-zinc-800 rounded-lg p-4">
-            <p>Don't like the current result? The InkSynth engine can still make mistakes, especially if the images don't meet our recommended guidelines. But don't worry, just <span className="font-semibold text-zinc-300">Regenerate it!</span></p>
+            <p>Don't like the current result? The InkSynth engine can still make mistakes, especially if the images don't meet our recommended guidelines. But don't worry, review the result for 8 seconds and if you don't like it, <span className="font-semibold text-zinc-300">Regenerate it again!</span></p>
           </div>
 
           {error && <p className="text-red-400 mt-4 bg-red-500/10 p-3 rounded-md max-w-2xl w-full text-center border border-red-500/20">{error}</p>}
@@ -412,9 +444,9 @@ function App() {
                   <ShareIcon /> Share
               </button>
             )}
-            <button onClick={handleRegenerate} disabled={isRegenerating} className="bg-zinc-700 text-white font-semibold py-2 px-5 rounded-full transition-all transform hover:scale-105 hover:bg-zinc-600 duration-300 flex items-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:scale-100">
+            <button onClick={handleRegenerate} disabled={isRegenerating || regenerateCountdown > 0} className="bg-zinc-700 text-white font-semibold py-2 px-5 rounded-full transition-all transform hover:scale-105 hover:bg-zinc-600 duration-300 flex items-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:scale-100">
               {isRegenerating ? <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <RegenerateIcon />}
-              {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+              {isRegenerating ? 'Regenerating...' : regenerateCountdown > 0 ? `Wait ${regenerateCountdown}s` : 'Regenerate'}
             </button>
             <button onClick={handleReset} disabled={isRegenerating} className="border border-zinc-700 text-zinc-300 font-medium py-2 px-5 rounded-full transition-all transform hover:scale-105 hover:bg-zinc-800 hover:text-white duration-300 disabled:border-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed disabled:scale-100">
               Start Over
@@ -515,7 +547,7 @@ function App() {
             </div>
 
             <div className="w-full max-w-2xl mt-6 text-center text-zinc-400 bg-zinc-900/40 border border-zinc-800 rounded-lg p-4">
-              <p>Don't like the current result? The InkSynth engine can still make mistakes, especially if the images don't meet our recommended guidelines. But don't worry, just <span className="font-semibold text-zinc-300">Regenerate it!</span></p>
+              <p>Don't like the current result? The InkSynth engine can still make mistakes, especially if the images don't meet our recommended guidelines. But don't worry, review the result for 8 seconds and if you don't like it, <span className="font-semibold text-zinc-300">Regenerate it again!</span></p>
             </div>
 
             {multiTattooError && <p className="text-red-400 mt-4 bg-red-500/10 p-3 rounded-md max-w-2xl w-full text-center border border-red-500/20">{multiTattooError}</p>}
@@ -531,9 +563,9 @@ function App() {
                         <ShareIcon /> Share
                     </button>
                 )}
-                <button onClick={handleRegenerateMulti} disabled={isRegeneratingMulti} className="bg-zinc-700 text-white font-semibold py-2 px-5 rounded-full transition-all transform hover:scale-105 hover:bg-zinc-600 duration-300 flex items-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:scale-100">
+                <button onClick={handleRegenerateMulti} disabled={isRegeneratingMulti || multiRegenerateCountdown > 0} className="bg-zinc-700 text-white font-semibold py-2 px-5 rounded-full transition-all transform hover:scale-105 hover:bg-zinc-600 duration-300 flex items-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed disabled:scale-100">
                     {isRegeneratingMulti ? <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <RegenerateIcon />}
-                    {isRegeneratingMulti ? 'Regenerating...' : 'Regenerate'}
+                    {isRegeneratingMulti ? 'Regenerating...' : multiRegenerateCountdown > 0 ? `Wait ${multiRegenerateCountdown}s` : 'Regenerate'}
                 </button>
                 <button onClick={handleResetMulti} disabled={isRegeneratingMulti} className="border border-zinc-700 text-zinc-300 font-medium py-2 px-5 rounded-full transition-all transform hover:scale-105 hover:bg-zinc-800 hover:text-white duration-300 disabled:border-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed disabled:scale-100">
                     Start Over

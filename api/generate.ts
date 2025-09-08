@@ -3,7 +3,8 @@
 // The API_KEY is securely accessed from environment variables on the server.
 
 import express from 'express';
-import cors = require('cors');
+// FIX: Changed import from CommonJS to ES module syntax.
+import cors from 'cors';
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
 
 // --- Initialization & Config ---

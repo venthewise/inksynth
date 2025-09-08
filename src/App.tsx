@@ -449,15 +449,29 @@ function App() {
           {bodyPartImage && (
             <div className="mt-8 text-center transition-opacity duration-500">
               <h3 className="text-lg font-medium text-zinc-200 mb-4">3. On what part of the body is the tattoo?</h3>
-              <div className="flex flex-wrap justify-center gap-3">
-                {TARGET_AREAS.map(area => (
-                  <button key={area} onClick={() => { setTargetArea(area); setIsOtherTargetArea(false); }} className={`px-4 py-2 text-sm font-medium rounded-full border transition-all duration-200 ${targetArea === area && !isOtherTargetArea ? 'bg-accent-600 text-white border-accent-600 scale-105' : 'bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'}`}>
-                    {area}
-                  </button>
-                ))}
-                <button key="others" onClick={() => { setTargetArea(''); setIsOtherTargetArea(true); }} className={`px-4 py-2 text-sm font-medium rounded-full border transition-all duration-200 ${isOtherTargetArea ? 'bg-accent-600 text-white border-accent-600 scale-105' : 'bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'}`}>
-                  Other...
-                </button>
+              <div className="max-w-md mx-auto">
+                <select
+                  value={isOtherTargetArea ? 'other' : (targetArea || '')}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'other') {
+                      setTargetArea('');
+                      setIsOtherTargetArea(true);
+                    } else {
+                      setTargetArea(value);
+                      setIsOtherTargetArea(false);
+                    }
+                  }}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-zinc-200 focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-colors duration-200"
+                >
+                  <option value="" disabled>Select a body part...</option>
+                  {TARGET_AREAS.map(area => (
+                    <option key={area} value={area} className="bg-zinc-900 text-zinc-200">
+                      {area}
+                    </option>
+                  ))}
+                  <option value="other" className="bg-zinc-900 text-zinc-200">Other...</option>
+                </select>
               </div>
               {isOtherTargetArea && (
                 <div className="mt-4 max-w-md mx-auto text-left animate-fade-in">
@@ -547,11 +561,29 @@ function App() {
                     {multiBodyPartImage && (
                         <div className="mt-6 text-center">
                             <h3 className="text-base font-medium text-zinc-200 mb-3">Target Area for First Tattoo</h3>
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {TARGET_AREAS.map(area => (
-                                    <button key={`t1-${area}`} onClick={() => { setMultiTargetArea1(area); setIsOtherTargetArea1(false); }} className={`px-3 py-1 text-sm font-medium rounded-full border transition-all duration-200 ${multiTargetArea1 === area && !isOtherTargetArea1 ? 'bg-accent-600 text-white border-accent-600' : 'bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`}>{area}</button>
-                                ))}
-                                <button key="t1-others" onClick={() => { setMultiTargetArea1(''); setIsOtherTargetArea1(true); }} className={`px-3 py-1 text-sm font-medium rounded-full border transition-all duration-200 ${isOtherTargetArea1 ? 'bg-accent-600 text-white border-accent-600' : 'bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`}>Other...</button>
+                            <div className="max-w-sm mx-auto">
+                                <select
+                                    value={isOtherTargetArea1 ? 'other' : (multiTargetArea1 || '')}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === 'other') {
+                                            setMultiTargetArea1('');
+                                            setIsOtherTargetArea1(true);
+                                        } else {
+                                            setMultiTargetArea1(value);
+                                            setIsOtherTargetArea1(false);
+                                        }
+                                    }}
+                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-200 focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-colors duration-200"
+                                >
+                                    <option value="" disabled>Select a body part...</option>
+                                    {TARGET_AREAS.map(area => (
+                                        <option key={`t1-${area}`} value={area} className="bg-zinc-900 text-zinc-200">
+                                            {area}
+                                        </option>
+                                    ))}
+                                    <option value="other" className="bg-zinc-900 text-zinc-200">Other...</option>
+                                </select>
                             </div>
                             {isOtherTargetArea1 && (
                                 <div className="mt-3 text-left animate-fade-in">
@@ -575,11 +607,29 @@ function App() {
                      {multiBodyPartImage && (
                         <div className="mt-6 text-center">
                             <h3 className="text-base font-medium text-zinc-200 mb-3">Target Area for Second Tattoo</h3>
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {TARGET_AREAS.map(area => (
-                                    <button key={`t2-${area}`} onClick={() => { setMultiTargetArea2(area); setIsOtherTargetArea2(false); }} className={`px-3 py-1 text-sm font-medium rounded-full border transition-all duration-200 ${multiTargetArea2 === area && !isOtherTargetArea2 ? 'bg-accent-600 text-white border-accent-600' : 'bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`}>{area}</button>
-                                ))}
-                                <button key="t2-others" onClick={() => { setMultiTargetArea2(''); setIsOtherTargetArea2(true); }} className={`px-3 py-1 text-sm font-medium rounded-full border transition-all duration-200 ${isOtherTargetArea2 ? 'bg-accent-600 text-white border-accent-600' : 'bg-transparent border-zinc-700 text-zinc-300 hover:bg-zinc-800'}`}>Other...</button>
+                            <div className="max-w-sm mx-auto">
+                                <select
+                                    value={isOtherTargetArea2 ? 'other' : (multiTargetArea2 || '')}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (value === 'other') {
+                                            setMultiTargetArea2('');
+                                            setIsOtherTargetArea2(true);
+                                        } else {
+                                            setMultiTargetArea2(value);
+                                            setIsOtherTargetArea2(false);
+                                        }
+                                    }}
+                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-200 focus:ring-2 focus:ring-accent-500 focus:border-accent-500 transition-colors duration-200"
+                                >
+                                    <option value="" disabled>Select a body part...</option>
+                                    {TARGET_AREAS.map(area => (
+                                        <option key={`t2-${area}`} value={area} className="bg-zinc-900 text-zinc-200">
+                                            {area}
+                                        </option>
+                                    ))}
+                                    <option value="other" className="bg-zinc-900 text-zinc-200">Other...</option>
+                                </select>
                             </div>
                             {isOtherTargetArea2 && (
                                 <div className="mt-3 text-left animate-fade-in">

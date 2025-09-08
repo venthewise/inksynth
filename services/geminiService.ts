@@ -55,17 +55,19 @@ async function postToApi(payload: object): Promise<string> {
 export const generateTattooSimulation = async (
   bodyPartImage: File,
   tattooDesignImage: File,
-  targetArea: string
+  targetArea: string,
+  wasOriginallyRight: boolean = false
 ): Promise<string> => {
   const bodyPartImageBase64 = await fileToBase64(bodyPartImage);
   const tattooDesignImageBase64 = await fileToBase64(tattooDesignImage);
-  
+
   return postToApi({
     type: 'simulator',
     payload: {
       bodyPartImage: bodyPartImageBase64,
       tattooDesignImage: tattooDesignImageBase64,
       targetArea,
+      wasOriginallyRight,
     }
   });
 };

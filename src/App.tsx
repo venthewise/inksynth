@@ -164,14 +164,16 @@ function App() {
     try {
       let finalBodyImageFile = bodyPartImage.file;
       let finalTargetArea = targetArea;
+      let wasOriginallyRight = false;
 
       // If a 'Right' body part is selected, flip the image and target the 'Left' side.
       if (targetArea.includes('Right')) {
         finalBodyImageFile = await flipImageHorizontally(bodyPartImage.file);
         finalTargetArea = targetArea.replace('Right', 'Left');
+        wasOriginallyRight = true;
       }
 
-      const result = await generateTattooSimulation(finalBodyImageFile, tattooDesignImage.file, finalTargetArea);
+      const result = await generateTattooSimulation(finalBodyImageFile, tattooDesignImage.file, finalTargetArea, wasOriginallyRight);
       setGeneratedImage(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);

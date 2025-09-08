@@ -45,21 +45,38 @@ interface Base64Image {
 const runTattooSimulation = async (
   bodyPartImage: Base64Image,
   tattooDesignImage: Base64Image,
-  targetArea: string
+  targetArea: string,
+  wasOriginallyRight: boolean = false
 ): Promise<string> => {
   try {
     let sleeveDefinition = '';
     if (targetArea.toLowerCase().includes('full sleeve')) {
       sleeveDefinition = `**SPECIAL INSTRUCTION FOR FULL SLEEVE:** A "Full Sleeve" tattoo covers the entire arm, from the shoulder down to the wrist. The design must be realistically wrapped around the arm and contained entirely within these boundaries.`;
     }
+
+    const orientationNote = wasOriginallyRight ?
+      'NOTE: The input image has been horizontally flipped to standardize orientation for processing.' :
+      'NOTE: The input image shows the natural, original orientation.';
+
     const promptText = `
 Your task is to place the provided tattoo design onto the subject's ${targetArea} in the main image.
 ${sleeveDefinition}
+
+**CRITICAL PERSPECTIVE DEFINITION:**
+- 'Left' and 'Right' ALWAYS refer to the SUBJECT'S own left and right sides, NOT the viewer's perspective
+- If the subject is facing you, their right arm appears on your left side in the image
+- The tattoo must be placed on the anatomically correct side of the subject's body
+
+**VISUAL ORIENTATION:**
+${orientationNote}
+
 **MANDATORY RULES:**
 1. PLACEMENT ACCURACY: The tattoo MUST be placed *only* on the specified "${targetArea}".
-2. REALISM: The tattoo must blend seamlessly, conforming to body contours, muscle definition, lighting, and shadows.
-3. IMAGE INTEGRITY: The output image MUST have the exact same dimensions and aspect ratio as the original body part image.
-4. OUTPUT FORMAT: Your final output MUST be only the edited image itself. No text.
+2. ANATOMICAL CORRECTNESS: Respect the subject's left/right body orientation at all times.
+3. REALISM: The tattoo must blend seamlessly, conforming to body contours, muscle definition, lighting, and shadows.
+4. IMAGE INTEGRITY: The output image MUST have the exact same dimensions and aspect ratio as the original body part image.
+5. OUTPUT FORMAT: Your final output MUST be only the edited image itself. No text.
+
 The target area is: **${targetArea}**.`;
 
     const response = await ai.models.generateContent({
@@ -172,7 +189,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     switch (type) {
       case 'simulator':
-        resultImage = await runTattooSimulation(payload.bodyPartImage, payload.tattooDesignImage, payload.targetArea);
+        resultImage = await runTattooSimulation(
+          payload.bodyPartImage,
+          payload.tattooDesignImage,
+          payload.targetArea,
+          payload.wasOriginallyRight || false
+        );
         break;
       case 'designer':
         resultImage = await runTattooDesign(payload.images, payload.prompt, payload.isColor, payload.placement);

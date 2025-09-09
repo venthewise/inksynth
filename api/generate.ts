@@ -12,14 +12,51 @@ if (!process.env.API_KEY) {
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 
+// --- Validation Constants ---
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_PROMPT_LENGTH = 500;
+
+// --- Validation Functions ---
+function validateImage(base64Data: string, filename: string): void {
+  // Check file size
+  const sizeInBytes = (base64Data.length * 3) / 4; // Approximate decoded size
+  if (sizeInBytes > MAX_FILE_SIZE) {
+    throw new Error(`File "${filename}" is too large. Maximum size is 10MB.`);
+  }
+
+  // Check MIME type
+  const mimeMatch = base64Data.match(/^data:([^;]+)/);
+  if (!mimeMatch || !ALLOWED_MIME_TYPES.includes(mimeMatch[1])) {
+    throw new Error(`File "${filename}" has invalid format. Only JPEG, PNG, and WebP are allowed.`);
+  }
+
+  // Basic content validation (check if it's actually an image)
+  if (!base64Data.startsWith('data:image/')) {
+    throw new Error(`File "${filename}" is not a valid image.`);
+  }
+}
+
+function validatePrompt(prompt: string): void {
+  if (!prompt || prompt.trim().length === 0) {
+    throw new Error('Prompt cannot be empty.');
+  }
+  if (prompt.length > MAX_PROMPT_LENGTH) {
+    throw new Error(`Prompt is too long. Maximum length is ${MAX_PROMPT_LENGTH} characters.`);
+  }
+  // Basic sanitization - remove potentially harmful characters
+  const sanitized = prompt.replace(/[<>]/g, '');
+  if (sanitized !== prompt) {
+    throw new Error('Prompt contains invalid characters.');
+  }
+}
+
 // --- Helper Functions ---
 const handleApiError = (error: unknown): Promise<never> => {
     console.error("Error calling Gemini API:", error);
-    let detailedError = "An unknown error occurred during image generation.";
-    if (error instanceof Error) {
-        detailedError = error.message;
-    }
-    return Promise.reject(new Error(`Failed to generate: ${detailedError}`));
+
+    // Return generic error message to prevent information disclosure
+    return Promise.reject(new Error("Failed to generate image. Please check your inputs and try again."));
 }
 
 const extractImageFromResponse = (response: GenerateContentResponse): string => {
@@ -169,10 +206,23 @@ Your task is to place TWO separate tattoo designs onto the subject in the main i
 
 // --- Vercel Serverless Function Handler ---
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Allow requests from all origins. You might want to restrict this to your domain in production.
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Secure CORS configuration - only allow specific origins
+  const allowedOrigins = [
+    'https://inksynth.vercel.app',
+    'https://inksynth-git-main-yunuk.vercel.app', // For preview deployments
+    'http://localhost:5173', // For local development
+  ];
+
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', 'https://inksynth.vercel.app');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
 
   // Handle preflight requests for CORS
   if (req.method === 'OPTIONS') {
@@ -187,8 +237,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { type, payload } = req.body;
     let resultImage: string;
 
+    // Validate inputs based on type
     switch (type) {
       case 'simulator':
+        validateImage(payload.bodyPartImage.data, 'body part image');
+        validateImage(payload.tattooDesignImage.data, 'tattoo design image');
         resultImage = await runTattooSimulation(
           payload.bodyPartImage,
           payload.tattooDesignImage,
@@ -197,9 +250,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
         break;
       case 'designer':
+        payload.images.forEach((img: any, index: number) => {
+          validateImage(img.data, `design image ${index + 1}`);
+        });
+        validatePrompt(payload.prompt);
         resultImage = await runTattooDesign(payload.images, payload.prompt, payload.isColor, payload.placement);
         break;
       case 'multi-tattoo':
+        validateImage(payload.bodyPartImage.data, 'body part image');
+        validateImage(payload.tattoo1.data, 'first tattoo image');
+        validateImage(payload.tattoo2.data, 'second tattoo image');
         resultImage = await runMultiTattooSimulation(payload.bodyPartImage, payload.tattoo1, payload.targetArea1, payload.tattoo2, payload.targetArea2);
         break;
       default:
@@ -210,7 +270,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error) {
     console.error(`Error in API handler:`, error);
-    const errorMessage = error instanceof Error ? error.message : "An unexpected server error occurred.";
-    return res.status(500).json({ error: errorMessage });
+
+    // Return generic error messages in production to prevent information disclosure
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    if (isDevelopment) {
+      // Show detailed errors only in development
+      const errorMessage = error instanceof Error ? error.message : "An unexpected server error occurred.";
+      return res.status(500).json({ error: errorMessage });
+    } else {
+      // Generic error for production
+      return res.status(500).json({
+        error: 'An error occurred while processing your request. Please try again.'
+      });
+    }
   }
 }

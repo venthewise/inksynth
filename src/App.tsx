@@ -7,6 +7,7 @@ import { GuidelinesModal } from './components/GuidelinesModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { MultiTattooModal } from './components/MultiTattooModal';
 import { ImageCropperModal } from './components/ImageCropperModal';
+import { PrivacyModal } from './components/PrivacyModal';
 import { flipImageHorizontally } from './components/utils';
 
 const TARGET_AREAS = ["Neck", "Chest", "Back", "Right Shoulder", "Left Shoulder", "Right Bicep", "Left Bicep", "Right Forearm", "Left Forearm", "Full Sleeve (Right Arm)", "Full Sleeve (Left Arm)", "Right Thigh", "Left Thigh", "Right Calf", "Left Calf"];
@@ -32,6 +33,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [croppingState, setCroppingState] = useState<{ image: ImageFile; onSave: (newFile: File) => void; } | null>(null);
 
 
@@ -844,7 +846,16 @@ function App() {
           {mode === 'designer' && renderDesigner()}
         </main>
 
-        <footer className="text-center mt-12 text-zinc-600 text-sm"><p>Powered by Gemini. Images are processed and not stored.</p></footer>
+        <footer className="text-center mt-12 text-zinc-600 text-sm">
+          <p>Powered by Gemini. Images are processed and not stored.
+            <button
+              onClick={() => setIsPrivacyOpen(true)}
+              className="text-accent-500 hover:text-accent-400 ml-1 underline"
+            >
+              Privacy Policy
+            </button>
+          </p>
+        </footer>
       </div>
       <GuidelinesModal isOpen={isGuidelinesOpen} onClose={() => setIsGuidelinesOpen(false)} />
       <MultiTattooModal isOpen={isMultiModalOpen} onClose={() => setIsMultiModalOpen(false)} />
@@ -864,6 +875,7 @@ function App() {
               onComplete={croppingState.onSave}
           />
       )}
+      <PrivacyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
     </div>
   );
 }

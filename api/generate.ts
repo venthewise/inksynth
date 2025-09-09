@@ -18,7 +18,7 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_PROMPT_LENGTH = 500;
 
 // --- Validation Functions ---
-function validateImage(base64Data: string, filename: string): void {
+function validateImage(base64Data: string, mimeType: string, filename: string): void {
   // Check file size
   const sizeInBytes = (base64Data.length * 3) / 4; // Approximate decoded size
   if (sizeInBytes > MAX_FILE_SIZE) {
@@ -26,14 +26,13 @@ function validateImage(base64Data: string, filename: string): void {
   }
 
   // Check MIME type
-  const mimeMatch = base64Data.match(/^data:([^;]+)/);
-  if (!mimeMatch || !ALLOWED_MIME_TYPES.includes(mimeMatch[1])) {
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
     throw new Error(`File "${filename}" has invalid format. Only JPEG, PNG, and WebP are allowed.`);
   }
 
-  // Basic content validation (check if it's actually an image)
-  if (!base64Data.startsWith('data:image/')) {
-    throw new Error(`File "${filename}" is not a valid image.`);
+  // Basic content validation (check if base64 data exists)
+  if (!base64Data || base64Data.length === 0) {
+    throw new Error(`File "${filename}" appears to be empty or corrupted.`);
   }
 }
 
@@ -240,8 +239,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Validate inputs based on type
     switch (type) {
       case 'simulator':
-        validateImage(payload.bodyPartImage.data, 'body part image');
-        validateImage(payload.tattooDesignImage.data, 'tattoo design image');
+        validateImage(payload.bodyPartImage.data, payload.bodyPartImage.mimeType, 'body part image');
+        validateImage(payload.tattooDesignImage.data, payload.tattooDesignImage.mimeType, 'tattoo design image');
         resultImage = await runTattooSimulation(
           payload.bodyPartImage,
           payload.tattooDesignImage,
@@ -251,15 +250,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       case 'designer':
         payload.images.forEach((img: any, index: number) => {
-          validateImage(img.data, `design image ${index + 1}`);
+          validateImage(img.data, img.mimeType, `design image ${index + 1}`);
         });
         validatePrompt(payload.prompt);
         resultImage = await runTattooDesign(payload.images, payload.prompt, payload.isColor, payload.placement);
         break;
       case 'multi-tattoo':
-        validateImage(payload.bodyPartImage.data, 'body part image');
-        validateImage(payload.tattoo1.data, 'first tattoo image');
-        validateImage(payload.tattoo2.data, 'second tattoo image');
+        validateImage(payload.bodyPartImage.data, payload.bodyPartImage.mimeType, 'body part image');
+        validateImage(payload.tattoo1.data, payload.tattoo1.mimeType, 'first tattoo image');
+        validateImage(payload.tattoo2.data, payload.tattoo2.mimeType, 'second tattoo image');
         resultImage = await runMultiTattooSimulation(payload.bodyPartImage, payload.tattoo1, payload.targetArea1, payload.tattoo2, payload.targetArea2);
         break;
       default:

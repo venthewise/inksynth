@@ -28,7 +28,14 @@ async function postToApi(payload: object): Promise<string> {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    let result;
+    try {
+      result = await response.json();
+    } catch (parseError) {
+      // If response is not JSON (e.g., HTML error page), get text instead
+      const text = await response.text();
+      throw new Error(`Server error (${response.status}): ${text.substring(0, 200)}...`);
+    }
 
     if (!response.ok) {
       throw new Error(result.error || `Server responded with status: ${response.status}`);
@@ -37,7 +44,7 @@ async function postToApi(payload: object): Promise<string> {
     if (!result.image) {
       throw new Error("API response did not contain an image.");
     }
-    
+
     return result.image;
   } catch (error) {
      console.error(`Error during API call:`, error);

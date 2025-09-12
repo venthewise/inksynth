@@ -28,12 +28,14 @@ async function postToApi(payload: object): Promise<string> {
       body: JSON.stringify(payload),
     });
 
+    const responseClone = response.clone(); // Clone for fallback to avoid body stream read error
+
     let result;
     try {
       result = await response.json();
     } catch (parseError) {
-      // If response is not JSON (e.g., HTML error page), get text instead
-      const text = await response.text();
+      // If response is not JSON (e.g., HTML error page), get text from clone instead
+      const text = await responseClone.text();
       throw new Error(`Server error (${response.status}): ${text.substring(0, 200)}...`);
     }
 

@@ -1,13 +1,50 @@
 // This service now acts as a client to our own secure backend, hosted on Vercel.
 
-const fileToBase64 = (file: File): Promise<{mimeType: string, data: string}> => {
+const resizeImage = (file: File, maxWidth: number = 1024, maxHeight: number = 1024): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    const img = new Image();
+
+    img.onload = () => {
+      // Calculate new dimensions
+      let { width, height } = img;
+      if (width > height) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Draw and compress
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        const resizedFile = new File([blob!], file.name, { type: file.type });
+        resolve(resizedFile);
+      }, file.type, 0.8); // 80% quality
+    };
+
+    img.src = URL.createObjectURL(file);
+  });
+};
+
+const fileToBase64 = async (file: File): Promise<{mimeType: string, data: string}> => {
+  const resizedFile = await resizeImage(file); // Resize before conversion
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(resizedFile);
     reader.onload = () => {
       const result = reader.result as string;
       const [header, data] = result.split(',');
-      const mimeType = header.match(/:(.*?);/)?.[1] || file.type;
+      const mimeType = header.match(/:(.*?);/)?.[1] || resizedFile.type;
       if (!data || !mimeType) {
         reject(new Error("Invalid file format."));
         return;
